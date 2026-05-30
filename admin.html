@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Administrativo - Threads of Dawn</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <div class="admin-sidebar">
+            <div class="admin-logo">
+                <i class="fas fa-cog"></i> Admin
+            </div>
+            <div class="admin-menu">
+                <button class="admin-menu-item active" onclick="switchAdminSection('productos')">
+                    <i class="fas fa-box"></i> Productos
+                </button>
+                <button class="admin-menu-item" onclick="switchAdminSection('ventas')">
+                    <i class="fas fa-chart-line"></i> Ventas
+                </button>
+                <button class="admin-menu-item" onclick="switchAdminSection('promos')">
+                    <i class="fas fa-tag"></i> Promociones
+                </button>
+                <button class="admin-menu-item" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                </button>
+            </div>
+        </div>
+
+        <!-- Contenido -->
+        <div class="admin-content">
+            <!-- Sección: Productos -->
+            <div id="productos" class="admin-section active">
+                <div class="admin-header">
+                    <h2>Gestión de Productos</h2>
+                    <button class="btn-add-new" onclick="openAddProductModal()">
+                        <i class="fas fa-plus"></i> Agregar Producto
+                    </button>
+                </div>
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Precio</th>
+                            <th>Stock</th>
+                            <th>Categoría</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsTable"></tbody>
+                </table>
+            </div>
+
+            <!-- Sección: Ventas -->
+            <div id="ventas" class="admin-section">
+                <div class="admin-header">
+                    <h2>Historial de Ventas</h2>
+                </div>
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Folio</th>
+                            <th>Cliente</th>
+                            <th>Subtotal</th>
+                            <th>IVA</th>
+                            <th>Total</th>
+                            <th>Fecha/Hora</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="salesTable"></tbody>
+                </table>
+            </div>
+
+            <!-- Sección: Promociones -->
+            <div id="promos" class="admin-section">
+                <div class="admin-header">
+                    <h2>Códigos Promocionales</h2>
+                    <button class="btn-add-new" onclick="openAddPromoModal()">
+                        <i class="fas fa-plus"></i> Crear Promoción
+                    </button>
+                </div>
+                
+                <!-- Formulario para crear promoción -->
+                <div style="background: var(--light-bg); padding: 30px; border-radius: 15px; margin-bottom: 30px; box-shadow: var(--shadow);">
+                    <h3 style="color: var(--primary); margin-bottom: 20px;">Nueva Promoción</h3>
+                    <div class="form-grid">
+                        <div class="form-group-admin">
+                            <label>Código</label>
+                            <input type="text" id="promoCode" placeholder="Ej: VERANO2024">
+                        </div>
+                        <div class="form-group-admin">
+                            <label>Tipo</label>
+                            <select id="promoType">
+                                <option value="%">Porcentaje (%)</option>
+                                <option value="$">Cantidad ($)</option>
+                            </select>
+                        </div>
+                        <div class="form-group-admin">
+                            <label>Valor</label>
+                            <input type="number" id="promoValue" placeholder="Ej: 20" min="0">
+                        </div>
+                        <div class="form-group-admin">
+                            <label>Fecha de Expiración</label>
+                            <input type="date" id="promoExpiry">
+                        </div>
+                        <div class="form-group-admin">
+                            <label>Límite de Usos (Opcional)</label>
+                            <input type="number" id="promoLimit" placeholder="Ilimitado" min="1">
+                        </div>
+                        <div class="form-group-admin">
+                            <label>Activo</label>
+                            <select id="promoActive">
+                                <option value="true">Sí</option>
+                                <option value="false">No</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn-save" onclick="createPromo()">
+                        <i class="fas fa-check"></i> Crear Código
+                    </button>
+                </div>
+
+                <!-- Tabla de promociones -->
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Código</th>
+                            <th>Tipo</th>
+                            <th>Valor</th>
+                            <th>Activo</th>
+                            <th>Usos</th>
+                            <th>Vencimiento</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="promosTable"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        let adminProducts = JSON.parse(localStorage.getItem('adminProducts')) || products;
+        let promos = JSON.parse(localStorage.getItem('promos')) || [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAdminAuth();
+            renderAdminProducts();
+            renderSales();
+            renderPromos();
+        });
+
+        function checkAdminAuth() {
+            if (!currentUser) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            if (currentUser.role !== 'admin') {
+                const password = prompt('Ingresa la contraseña de administrador:');
+                if (password !== 'Ali1234') {
+                    showNotification('Acceso denegado', 'error');
+                    setTimeout(() => window.location.href = 'productos.html', 2000);
+                }
+            }
+        }
+
+        function switchAdminSection(section) {
+            document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.admin-menu-item').forEach(m => m.classList.remove('active'));
+            
+            document.getElementById(section).classList.add('active');
+            event.target.closest('.admin-menu-item')?.classList.add('active');
+        }
+
+        // ==================== PRODUCTOS ====================
+        function renderAdminProducts() {
+            const table = document.getElementById('productsTable');
+            table.innerHTML = adminProducts.map(product => `
+                <tr>
+                    <td>${product.id}</td>
+                    <td>${product.name}</td>
+                    <td>$${product.price}</td>
+                    <td>${product.stock || 100}</td>
+                    <td>${product.category}</td>
+                    <td>
+                        <button class="btn-action btn-edit" onclick="editProduct(${product.id})">
+                            <i class="fas fa-edit"></i> Editar
+                        </button>
+                        <button class="btn-action btn-delete" onclick="deleteProduct(${product.id})">
+                            <i class="fas fa-trash"></i> Eliminar
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function editProduct(productId) {
+            const product = adminProducts.find(p => p.id === productId);
+            if (!product) return;
+
+            const modal = document.createElement('div');
+            modal.className = 'modal active';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 700px;">
+                    <button class="modal-close" onclick="this.closest('.modal').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <h2 style="color: var(--primary); margin-bottom: 30px;">Editar Producto</h2>
+                    <div class="form-grid">
+                        <div class="form-group-admin">
+                            <label>Nombre</label>
+                            <input type="text" id="editName" value="${product.name}">
+                        </div>
+                        <div class="form-group-admin">
+                            <label>Precio</label>
+                            <input type="number" id="editPrice" value="${product.price}">
+                        </div>
+                        <div class="form-group-admin">
+                            <label>Stock</label>
+                            <input type="number" id="editStock" value="${product.stock || 100}">
+                        </div>
+                        <div class="form-group-admin">
+                            <label>Categoría</label>
+                            <input type="text" id="editCategory" value="${product.category}">
+                        </div>
+                        <div class="form-group-admin" style="grid-column: 1/-1;">
+                            <label>Descripción</label>
+                            <textarea id="editDescription">${product.description}</textarea>
+                        </div>
+                    </div>
+                    <button class="btn-save" onclick="saveProductEdit(${productId}, this.closest('.modal'))">
+                        <i class="fas fa-save"></i> Guardar Cambios
+                    </button>
+                </div>
+            `;
+            modal.onclick = (e) => {
+                if (e.target === modal) modal.remove();
+            };
+            document.body.appendChild(modal);
+        }
+
+        function saveProductEdit(productId, modal) {
+            const product = adminProducts.find(p => p.id === productId);
+            if (product) {
+                product.name = document.getElementById('editName').value;
+                product.price = parseFloat(document.getElementById('editPrice').value);
+                product.stock = parseInt(document.getElementById('editStock').value);
+                product.category = document.getElementById('editCategory').value;
+                product.description = document.getElementById('editDescription').value;
+
+                localStorage.setItem('adminProducts', JSON.stringify(adminProducts));
+                renderAdminProducts();
+                modal.remove();
+                showNotification('Producto actualizado', 'success');
+            }
+        }
+
+        function deleteProduct(productId) {
+            if (confirm('¿Estás seguro de que deseas eliminar este producto?')) {
+                adminProducts = adminProducts.filter(p => p.id !== productId);
+                localStorage.setItem('adminProducts', JSON.stringify(adminProducts));
+                renderAdminProducts();
+                showNotification('Producto eliminado', 'success');
+            }
+        }
+
+        function openAddProductModal() {
+            const modal = document.createElement('div');
+            modal.className = 'modal active';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 700px;">
+                    <button class="modal-close" onclick="this.closest('.modal').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <h2 style="color: var(--primary); margin-bottom: 30px;">Agregar Nuevo Producto</h2>
+                    <div class="form-grid">
+                        <div class="form-group-admin">
+                            <label>Nombre</label>
+                            <input type="text" id="newName">
+                        </div>
+                        <div class="form-group-admin">
+                            <label>Precio</label>
+                            <input type="number" id="newPrice">
+                        </div>
+                        <div class="form-group-admin">
+                            <label>Stock</label>
+                            <input type="number" id="newStock" value="100">
+                        </div>
+                        <div class="form-group-admin">
+                            <label>Categoría</label>
+                            <select id="newCategory">
+                                <option value="accesorios">Accesorios</option>
+                                <option value="ropa">Ropa</option>
+                                <option value="calzado">Calzado</option>
+                                <option value="bolsas">Bolsas</option>
+                                <option value="artesanía">Artesanía</option>
+                            </select>
+                        </div>
+                        <div class="form-group-admin" style="grid-column: 1/-1;">
+                            <label>Descripción</label>
+                            <textarea id="newDescription"></textarea>
+                        </div>
+                    </div>
+                    <button class="btn-save" onclick="addNewProduct(this.closest('.modal'))">
+                        <i class="fas fa-check"></i> Agregar Producto
+                    </button>
+                </div>
+            `;
+            modal.onclick = (e) => {
+                if (e.target === modal) modal.remove();
+            };
+            document.body.appendChild(modal);
+        }
+
+        function addNewProduct(modal) {
+            const newProduct = {
+                id: Math.max(...adminProducts.map(p => p.id), 0) + 1,
+                name: document.getElementById('newName').value,
+                price: parseFloat(document.getElementById('newPrice').value),
+                stock: parseInt(document.getElementById('newStock').value),
+                category: document.getElementById('newCategory').value,
+                description: document.getElementById('newDescription').value,
+                image: (Math.max(...adminProducts.map(p => parseInt(p.image))) + 1) + '.jpg',
+                type: 'normal'
+            };
+
+            if (!newProduct.name || !newProduct.price) {
+                showNotification('Por favor completa los campos requeridos', 'error');
+                return;
+            }
+
+            adminProducts.push(newProduct);
+            localStorage.setItem('adminProducts', JSON.stringify(adminProducts));
+            renderAdminProducts();
+            modal.remove();
+            showNotification('Producto agregado exitosamente', 'success');
+        }
+
+        // ==================== VENTAS ====================
+        function renderSales() {
+            const table = document.getElementById('salesTable');
+            let allSales = [];
+
+            users.forEach(user => {
+                if (user.purchases) {
+                    user.purchases.forEach(purchase => {
+                        allSales.push({ ...purchase, user: user });
+                    });
+                }
+            });
+
+            if (allSales.length === 0) {
+                table.innerHTML = '<tr><td colspan="7" style="text-align: center;">No hay ventas registradas</td></tr>';
+                return;
+            }
+
+            table.innerHTML = allSales.map(sale => `
+                <tr>
+                    <td>${sale.folio}</td>
+                    <td>${sale.customer.name}</td>
+                    <td>$${sale.subtotal.toFixed(2)}</td>
+                    <td>$${sale.tax.toFixed(2)}</td>
+                    <td>$${sale.total.toFixed(2)}</td>
+                    <td>${new Date(sale.date).toLocaleString()}</td>
+                    <td>
+                        <button class="btn-action btn-edit" onclick="viewReceipt('${JSON.stringify(sale).replace(/'/g, "\\'")}')">
+                            <i class="fas fa-receipt"></i> Comprobante
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function viewReceipt(saleStr) {
+            const sale = JSON.parse(saleStr);
+            alert(`Folio: ${sale.folio}\nCliente: ${sale.customer.name}\nTotal: $${sale.total.toFixed(2)}`);
+        }
+
+        // ==================== PROMOCIONES ====================
+        function renderPromos() {
+            const table = document.getElementById('promosTable');
+            if (promos.length === 0) {
+                table.innerHTML = '<tr><td colspan="8" style="text-align: center;">No hay promociones creadas</td></tr>';
+                return;
+            }
+
+            table.innerHTML = promos.map((promo, index) => `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${promo.code}</td>
+                    <td>${promo.type}</td>
+                    <td>${promo.value}</td>
+                    <td>${promo.active ? 'Sí' : 'No'}</td>
+                    <td>${promo.uses || 0}</td>
+                    <td>${new Date(promo.expiry).toLocaleDateString()}</td>
+                    <td>
+                        <button class="btn-action btn-delete" onclick="deletePromo(${index})">
+                            <i class="fas fa-trash"></i> Eliminar
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function createPromo() {
+            const code = document.getElementById('promoCode').value;
+            const type = document.getElementById('promoType').value;
+            const value = parseFloat(document.getElementById('promoValue').value);
+            const expiry = document.getElementById('promoExpiry').value;
+            const limit = parseInt(document.getElementById('promoLimit').value) || null;
+            const active = document.getElementById('promoActive').value === 'true';
+
+            if (!code || !value || !expiry) {
+                showNotification('Por favor completa todos los campos requeridos', 'error');
+                return;
+            }
+
+            const newPromo = {
+                code: code.toUpperCase(),
+                type: type,
+                value: value,
+                expiry: expiry,
+                limit: limit,
+                active: active,
+                uses: 0,
+                created: new Date().toISOString()
+            };
+
+            promos.push(newPromo);
+            localStorage.setItem('promos', JSON.stringify(promos));
+            renderPromos();
+
+            document.getElementById('promoCode').value = '';
+            document.getElementById('promoValue').value = '';
+            document.getElementById('promoExpiry').value = '';
+            document.getElementById('promoLimit').value = '';
+
+            showNotification('Código promocional creado', 'success');
+        }
+
+        function deletePromo(index) {
+            if (confirm('¿Estás seguro de que deseas eliminar esta promoción?')) {
+                promos.splice(index, 1);
+                localStorage.setItem('promos', JSON.stringify(promos));
+                renderPromos();
+                showNotification('Promoción eliminada', 'success');
+            }
+        }
+
+        function openAddPromoModal() {
+            // Simplemente hace scroll a la sección del formulario
+            document.querySelector('#promos .form-grid').parentElement.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
