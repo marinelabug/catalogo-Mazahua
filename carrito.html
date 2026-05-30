@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carrito - Threads of Dawn</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-brand" onclick="window.location.href='productos.html'">
+            <i class="fas fa-store"></i> Threads of Dawn
+        </div>
+        <ul class="nav-links">
+            <li><a href="productos.html">Inicio</a></li>
+            <li><a href="galeria.html">Galería</a></li>
+            <li><a href="nosotros.html">Nosotros</a></li>
+        </ul>
+        <div class="nav-icons">
+            <button class="icon-btn" onclick="window.location.href='favoritos.html'">
+                <i class="fas fa-heart"></i>
+            </button>
+            <button class="icon-btn" onclick="window.location.href='carrito.html'">
+                <i class="fas fa-shopping-cart"></i>
+                <span class="cart-badge"></span>
+            </button>
+            <button class="icon-btn" onclick="window.location.href='perfil-usuario.html'">
+                <i class="fas fa-user-circle"></i>
+            </button>
+            <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">
+                <i class="fas fa-moon"></i>
+            </button>
+            <button class="icon-btn" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Carrito -->
+    <div class="cart-container">
+        <div class="cart-items" id="cartItems"></div>
+        <div class="cart-summary" id="cartSummary"></div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        let promos = JSON.parse(localStorage.getItem('promos')) || [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            renderCart();
+            updateCartBadge();
+        });
+
+        function renderCart() {
+            const container = document.getElementById('cartItems');
+            const summary = document.getElementById('cartSummary');
+
+            if (cart.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 60px 20px; color: var(--light-text);"><i class="fas fa-shopping-cart" style="font-size: 60px; opacity: 0.3; margin-bottom: 20px;"></i><p>Tu carrito está vacío</p></div>';
+                summary.innerHTML = '';
+                return;
+            }
+
+            container.innerHTML = cart.map((item, index) => `
+                <div class="cart-item">
+                    <img src="https://via.placeholder.com/150x150?text=${item.name}" alt="${item.name}" class="cart-item-image">
+                    <div class="cart-item-details">
+                        <h3>${item.name}</h3>
+                        <p>Talla: ${item.size}</p>
+                        <p>Cantidad: ${item.quantity}</p>
+                        <div class="cart-item-price">$${(item.price * item.quantity).toFixed(2)}</div>
+                        <div class="cart-item-controls">
+                            <button class="btn-remove" onclick="removeFromCart(${index})">
+                                <i class="fas fa-trash"></i> Eliminar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Calcular totales
+            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const tax = subtotal * 0.16; // IVA 16%
+            const total = subtotal + tax;
+
+            summary.innerHTML = `
+                <h3>Resumen de Compra</h3>
+                <div class="summary-row">
+                    <span>Subtotal:</span>
+                    <span>$${subtotal.toFixed(2)}</span>
+                </div>
+                <input type="text" class="promo-input" id="promoCode" placeholder="Código promocional">
+                <button class="btn-promo" onclick="applyPromo()">Aplicar Promoción</button>
+                <div class="summary-row">
+                    <span>IVA (16%):</span>
+                    <span>$${tax.toFixed(2)}</span>
+                </div>
+                <div class="summary-row">
+                    <span>Total:</span>
+                    <span id="totalPrice">$${total.toFixed(2)}</span>
+                </div>
+                <button class="btn-checkout" onclick="checkout()">
+                    <i class="fas fa-credit-card"></i> Proceder a Comprar
+                </button>
+                <button class="btn-clear-cart" onclick="clearCart()">
+                    <i class="fas fa-trash"></i> Vaciar Carrito
+                </button>
+            `;
+        }
+
+        function applyPromo() {
+            const code = document.getElementById('promoCode').value;
+            const promo = promos.find(p => p.code === code && p.active);
+
+            if (!promo) {
+                showNotification('Código inválido o no disponible', 'error');
+                return;
+            }
+
+            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            let discount = 0;
+
+            if (promo.type === '%') {
+                discount = subtotal * (promo.value / 100);
+            } else {
+                discount = promo.value;
+            }
+
+            const total = subtotal - discount + (subtotal - discount) * 0.16;
+            document.getElementById('totalPrice').textContent = `$${total.toFixed(2)}`;
+            localStorage.setItem('currentPromo', JSON.stringify(promo));
+            showNotification(`¡Promoción aplicada! Descuento: $${discount.toFixed(2)}`, 'success');
+        }
+
+        function clearCart() {
+            if (confirm('¿Estás seguro de que deseas vaciar el carrito?')) {
+                cart = [];
+                localStorage.setItem('cart', JSON.stringify(cart));
+                renderCart();
+                updateCartBadge();
+                showNotification('Carrito vaciado', 'info');
+            }
+        }
+
+        function checkout() {
+            if (cart.length === 0) {
+                showNotification('El carrito está vacío', 'error');
+                return;
+            }
+
+            showCheckoutModal();
+        }
+
+        function showCheckoutModal() {
+            const modal = document.createElement('div');
+            modal.className = 'modal active';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 600px;">
+                    <button class="modal-close" onclick="this.closest('.modal').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <h2 style="color: var(--primary); margin-bottom: 30px;">Datos de Envío</h2>
+                    <form onsubmit="processPurchase(event)">
+                        <div class="form-group">
+                            <label>Nombre Completo *</label>
+                            <input type="text" id="fullName" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Correo *</label>
+                            <input type="email" id="email" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Teléfono</label>
+                            <input type="tel" id="phone">
+                        </div>
+                        <div class="form-group">
+                            <label>Dirección *</label>
+                            <textarea id="address" required style="resize: vertical;"></textarea>
+                        </div>
+                        <button type="submit" class="btn-checkout" style="width: 100%;">
+                            Confirmar Compra
+                        </button>
+                    </form>
+                </div>
+            `;
+            modal.onclick = (e) => {
+                if (e.target === modal) modal.remove();
+            };
+            document.body.appendChild(modal);
+        }
+
+        function processPurchase(event) {
+            event.preventDefault();
+
+            const purchase = {
+                folio: 'ORD-' + Date.now(),
+                customer: {
+                    name: document.getElementById('fullName').value,
+                    email: document.getElementById('email').value,
+                    phone: document.getElementById('phone').value,
+                    address: document.getElementById('address').value
+                },
+                items: cart,
+                subtotal: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+                tax: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0) * 0.16,
+                total: 0
+            };
+
+            purchase.total = purchase.subtotal + purchase.tax;
+
+            // Registrar compra
+            recordPurchase(purchase);
+
+            // Mostrar modal de confirmación
+            showPurchaseSuccess(purchase);
+
+            // Limpiar carrito
+            cart = [];
+            localStorage.setItem('cart', JSON.stringify(cart));
+            updateCartBadge();
+        }
+
+        function showPurchaseSuccess(purchase) {
+            const modal = document.createElement('div');
+            modal.className = 'modal active';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 700px; text-align: center;">
+                    <div style="font-size: 80px; color: var(--green); margin-bottom: 20px; animation: bounce 0.6s ease;">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h2 style="color: var(--primary); margin-bottom: 10px;">¡Compra Realizada!</h2>
+                    <p style="color: var(--light-text); margin-bottom: 30px;">Tu pedido ha sido procesado exitosamente</p>
+                    <div style="background: rgba(139, 21, 56, 0.05); padding: 20px; border-radius: 10px; margin-bottom: 20px; text-align: left;">
+                        <p><strong>Folio:</strong> ${purchase.folio}</p>
+                        <p><strong>Cliente:</strong> ${purchase.customer.name}</p>
+                        <p><strong>Correo:</strong> ${purchase.customer.email}</p>
+                        <p><strong>Total:</strong> $${purchase.total.toFixed(2)}</p>
+                    </div>
+                    <button class="btn-checkout" onclick="printTicket('${JSON.stringify(purchase).replace(/'/g, "\\'")}')">
+                        <i class="fas fa-print"></i> Imprimir Tiket
+                    </button>
+                    <button class="btn-checkout" style="background: var(--secondary);" onclick="window.location.href='productos.html'">
+                        <i class="fas fa-arrow-left"></i> Seguir Comprando
+                    </button>
+                </div>
+            `;
+            modal.onclick = null;
+            document.body.appendChild(modal);
+        }
+
+        function printTicket(purchaseStr) {
+            const purchase = JSON.parse(purchaseStr);
+            const printWindow = window.open('', '', 'width=800,height=600');
+            
+            let ticketHTML = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 40px; max-width: 500px; margin: 0 auto; }
+                        .ticket { border: 2px solid #8B1538; padding: 30px; text-align: center; }
+                        .ticket-header { border-bottom: 2px dashed #8B1538; padding-bottom: 20px; margin-bottom: 20px; }
+                        .ticket-title { font-size: 24px; font-weight: bold; color: #8B1538; }
+                        .ticket-subtitle { color: #666; font-size: 12px; }
+                        .ticket-section { text-align: left; margin-bottom: 20px; border-bottom: 1px dashed #ddd; padding-bottom: 15px; }
+                        .ticket-section h4 { color: #8B1538; margin-top: 0; }
+                        .ticket-item { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
+                        .ticket-total { font-size: 18px; font-weight: bold; color: #8B1538; text-align: right; }
+                        .ticket-footer { text-align: center; color: #999; font-size: 11px; margin-top: 20px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="ticket">
+                        <div class="ticket-header">
+                            <div class="ticket-title">🧵 THREADS OF DAWN</div>
+                            <div class="ticket-subtitle">Artesanías Mazahua Auténticas</div>
+                            <div class="ticket-subtitle">Cecytem - Plantel Villa de Allende</div>
+                        </div>
+                        
+                        <div class="ticket-section">
+                            <h4>FOLIO DE COMPRA</h4>
+                            <div class="ticket-item">
+                                <span>${purchase.folio}</span>
+                            </div>
+                            <div class="ticket-item">
+                                <span>Fecha:</span>
+                                <span>${new Date().toLocaleString()}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="ticket-section">
+                            <h4>DATOS DEL CLIENTE</h4>
+                            <div class="ticket-item">
+                                <span>Nombre:</span>
+                                <span>${purchase.customer.name}</span>
+                            </div>
+                            <div class="ticket-item">
+                                <span>Correo:</span>
+                                <span>${purchase.customer.email}</span>
+                            </div>
+                            <div class="ticket-item">
+                                <span>Teléfono:</span>
+                                <span>${purchase.customer.phone || 'N/A'}</span>
+                            </div>
+                            <div class="ticket-item">
+                                <span>Dirección:</span>
+                                <span>${purchase.customer.address}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="ticket-section">
+                            <h4>PRODUCTOS</h4>
+                            ${purchase.items.map(item => `
+                                <div class="ticket-item">
+                                    <span>${item.name} (${item.quantity}x)</span>
+                                    <span>$${(item.price * item.quantity).toFixed(2)}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        <div class="ticket-section">
+                            <div class="ticket-item">
+                                <span>Subtotal:</span>
+                                <span>$${purchase.subtotal.toFixed(2)}</span>
+                            </div>
+                            <div class="ticket-item">
+                                <span>IVA (16%):</span>
+                                <span>$${purchase.tax.toFixed(2)}</span>
+                            </div>
+                            <div class="ticket-total">
+                                TOTAL: $${purchase.total.toFixed(2)}
+                            </div>
+                        </div>
+                        
+                        <div class="ticket-footer">
+                            <p>¡Gracias por tu compra!</p>
+                            <p>Esperamos que disfrutes nuestras artesanías mazahuas</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `;
+            
+            printWindow.document.write(ticketHTML);
+            printWindow.document.close();
+            setTimeout(() => printWindow.print(), 250);
+        }
+    </script>
+</body>
+</html>
