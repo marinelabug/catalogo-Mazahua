@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Threads of Dawn - Catálogo Mazahua</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="login-container">
+        <!-- Panel Izquierdo - Galería -->
+        <div class="login-gallery-panel">
+            <div class="carousel-wrapper">
+                <div class="carousel">
+                    <div class="carousel-item active">
+                        <img src="https://via.placeholder.com/500x600?text=Artesania+1" alt="Artesanías Mazahua">
+                        <div class="carousel-caption">Artesanías Tradicionales</div>
+                    </div>
+                    <div class="carousel-item">
+                        <img src="https://via.placeholder.com/500x600?text=Naturaleza+1" alt="Naturaleza">
+                        <div class="carousel-caption">Belleza de la Naturaleza</div>
+                    </div>
+                    <div class="carousel-item">
+                        <img src="https://via.placeholder.com/500x600?text=Artesano+1" alt="Artesanos">
+                        <div class="carousel-caption">Manos Artesanas</div>
+                    </div>
+                    <div class="carousel-item">
+                        <img src="https://via.placeholder.com/500x600?text=Cultura+1" alt="Cultura">
+                        <div class="carousel-caption">Herencia Mazahua</div>
+                    </div>
+                    <div class="carousel-item">
+                        <img src="https://via.placeholder.com/500x600?text=Telar+1" alt="Telar">
+                        <div class="carousel-caption">Tradición Textil</div>
+                    </div>
+                    <div class="carousel-item">
+                        <img src="https://via.placeholder.com/500x600?text=Bordado+1" alt="Bordado">
+                        <div class="carousel-caption">Arte Bordado</div>
+                    </div>
+                    <div class="carousel-item">
+                        <img src="https://via.placeholder.com/500x600?text=Naturaleza+2" alt="Tierra">
+                        <div class="carousel-caption">La Tierra Mazahua</div>
+                    </div>
+                    <div class="carousel-item">
+                        <img src="https://via.placeholder.com/500x600?text=Comunidad+1" alt="Comunidad">
+                        <div class="carousel-caption">Comunidad Unida</div>
+                    </div>
+                    <div class="carousel-item">
+                        <img src="https://via.placeholder.com/500x600?text=Productos+1" alt="Productos">
+                        <div class="carousel-caption">Nuestros Productos</div>
+                    </div>
+                    <div class="carousel-item">
+                        <img src="https://via.placeholder.com/500x600?text=Cultura+2" alt="Festividades">
+                        <div class="carousel-caption">Festividades Culturales</div>
+                    </div>
+                </div>
+                <button class="carousel-btn prev" onclick="changeSlide(-1)">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button class="carousel-btn next" onclick="changeSlide(1)">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+                <div class="carousel-indicators">
+                    <span class="indicator active" onclick="currentSlide(0)"></span>
+                    <span class="indicator" onclick="currentSlide(1)"></span>
+                    <span class="indicator" onclick="currentSlide(2)"></span>
+                    <span class="indicator" onclick="currentSlide(3)"></span>
+                    <span class="indicator" onclick="currentSlide(4)"></span>
+                    <span class="indicator" onclick="currentSlide(5)"></span>
+                    <span class="indicator" onclick="currentSlide(6)"></span>
+                    <span class="indicator" onclick="currentSlide(7)"></span>
+                    <span class="indicator" onclick="currentSlide(8)"></span>
+                    <span class="indicator" onclick="currentSlide(9)"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel Derecho - Formulario -->
+        <div class="login-form-panel">
+            <div class="login-header">
+                <div class="logo-section">
+                    <h1>Threads of Dawn</h1>
+                    <p class="tagline">Artesanías Mazahua Auténticas</p>
+                </div>
+                <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+
+            <div class="school-info">
+                <p><i class="fas fa-school"></i> Cecytem - Plantel Villa de Allende</p>
+            </div>
+
+            <div class="form-container">
+                <div id="loginForm" class="form-section active">
+                    <h2>Bienvenido</h2>
+                    <p class="form-description">Accede a nuestro catálogo de artesanías mazahuas auténticas</p>
+                    
+                    <form onsubmit="handleLogin(event)">
+                        <div class="form-group">
+                            <label for="loginUser">Usuario</label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-user"></i>
+                                <input type="text" id="loginUser" name="user" placeholder="Ingresa tu usuario" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="loginPassword">Contraseña</label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-lock"></i>
+                                <input type="password" id="loginPassword" name="password" placeholder="Ingresa tu contraseña" required>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-submit">
+                            <span>Iniciar Sesión</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </form>
+
+                    <div class="form-footer">
+                        <p>¿No tienes cuenta? <button type="button" onclick="toggleForm()" class="link-btn">Crear cuenta</button></p>
+                    </div>
+                </div>
+
+                <div id="registerForm" class="form-section">
+                    <h2>Crear Cuenta</h2>
+                    <p class="form-description">Únete a nuestra comunidad de artesanías mazahuas</p>
+                    
+                    <form onsubmit="handleRegister(event)">
+                        <div class="form-group">
+                            <label for="registerName">Nombre Completo</label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-user"></i>
+                                <input type="text" id="registerName" name="name" placeholder="Tu nombre completo" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="registerUser">Usuario</label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-at"></i>
+                                <input type="text" id="registerUser" name="user" placeholder="Elige un usuario" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="registerEmail">Correo</label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-envelope"></i>
+                                <input type="email" id="registerEmail" name="email" placeholder="tu@correo.com" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="registerPassword">Contraseña</label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-lock"></i>
+                                <input type="password" id="registerPassword" name="password" placeholder="Crea una contraseña segura" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="confirmPassword">Confirmar Contraseña</label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-lock"></i>
+                                <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirma tu contraseña" required>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-submit">
+                            <span>Crear Cuenta</span>
+                            <i class="fas fa-check"></i>
+                        </button>
+                    </form>
+
+                    <div class="form-footer">
+                        <p>¿Ya tienes cuenta? <button type="button" onclick="toggleForm()" class="link-btn">Inicia sesión</button></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
